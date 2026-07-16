@@ -1,8 +1,9 @@
-import { Link } from "@tanstack/react-router";
-import { Search, ShoppingCart, Menu as MenuIcon, X } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Search, ShoppingCart, Menu as MenuIcon, X, LogOut, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 import { Logo } from "./Logo";
 import { useCart } from "@/contexts/CartContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NAV = [
   { to: "/", label: "Home" },
@@ -13,6 +14,8 @@ const NAV = [
 
 export function Navbar() {
   const { count } = useCart();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -56,6 +59,32 @@ export function Navbar() {
               </span>
             )}
           </Link>
+          {user ? (
+            <>
+              <Link
+                to="/dashboard"
+                aria-label="Dashboard"
+                title={`Signed in as ${user.name}`}
+                className="hidden sm:grid h-9 w-9 place-items-center rounded-md hover:bg-accent transition-colors"
+              >
+                <LayoutDashboard size={18} />
+              </Link>
+              <button
+                onClick={() => { signOut(); navigate({ to: "/" }); }}
+                aria-label="Sign out"
+                className="hidden sm:grid h-9 w-9 place-items-center rounded-md hover:bg-accent transition-colors"
+              >
+                <LogOut size={18} />
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/signin"
+              className="hidden sm:inline-flex items-center rounded-md bg-brand px-3 py-1.5 text-xs font-semibold text-brand-foreground hover:opacity-90"
+            >
+              Sign in
+            </Link>
+          )}
           <button
             aria-label="Toggle menu"
             onClick={() => setOpen((s) => !s)}
