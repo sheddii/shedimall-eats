@@ -125,6 +125,24 @@ export function Navbar() {
                 {n.label}
               </Link>
             ))}
+            <div className="mt-2 pt-2 border-t border-border flex flex-col">
+              {user ? (
+                <>
+                  <Link to="/dashboard" onClick={() => setOpen(false)} className="py-2.5 text-sm font-medium">Dashboard</Link>
+                  <button
+                    onClick={() => { setOpen(false); signOut(); navigate({ to: "/" }); }}
+                    className="py-2.5 text-sm font-medium text-left"
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to="/signin" onClick={() => setOpen(false)} className="py-2.5 text-sm font-medium">Sign in</Link>
+                  <Link to="/signup" onClick={() => setOpen(false)} className="py-2.5 text-sm font-medium">Sign up</Link>
+                </>
+              )}
+            </div>
           </nav>
         </div>
       )}
