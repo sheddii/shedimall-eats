@@ -21,7 +21,7 @@ export function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         <Logo />
 
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden sm:flex items-center gap-1">
           {NAV.map((n) => (
             <Link
               key={n.to}
@@ -29,7 +29,7 @@ export function Navbar() {
               activeOptions={{ exact: n.to === "/" }}
               activeProps={{ className: "text-brand" }}
               inactiveProps={{ className: "text-foreground/70 hover:text-foreground" }}
-              className="px-3 py-2 text-sm font-medium transition-colors"
+              className="px-2 sm:px-3 py-2 text-sm font-medium transition-colors"
             >
               {n.label}
             </Link>
@@ -59,7 +59,7 @@ export function Navbar() {
           <button
             aria-label="Toggle menu"
             onClick={() => setOpen((s) => !s)}
-            className="md:hidden h-9 w-9 grid place-items-center rounded-md hover:bg-accent"
+            className="sm:hidden h-9 w-9 grid place-items-center rounded-md hover:bg-accent"
           >
             {open ? <X size={18} /> : <MenuIcon size={18} />}
           </button>
@@ -82,7 +82,7 @@ export function Navbar() {
       )}
 
       {open && (
-        <div className="md:hidden border-t border-border bg-background">
+        <div className="sm:hidden border-t border-border bg-background">
           <nav className="mx-auto max-w-7xl px-4 py-2 flex flex-col">
             {NAV.map((n) => (
               <Link
@@ -102,3 +102,4 @@ export function Navbar() {
     </header>
   );
 }
+
