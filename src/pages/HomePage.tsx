@@ -23,7 +23,7 @@ export function HomePage() {
             See full menu →
           </Link>
         </div>
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           {CATEGORIES.map((c) => (
             <CategoryCard key={c.id} category={c.id} label={c.label} image={c.image} blurb={c.blurb} />
           ))}
