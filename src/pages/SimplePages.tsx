@@ -103,7 +103,7 @@ export function SignUpPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) navigate({ to: target });
+    if (isAuthenticated) navigate({ href: target });
   }, [isAuthenticated, navigate, target]);
 
   const onSubmit = async (e: FormEvent) => {
@@ -112,7 +112,7 @@ export function SignUpPage() {
     setBusy(true);
     try {
       await signUp(name, email, password);
-      navigate({ to: target });
+      navigate({ href: target });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed");
     } finally {
