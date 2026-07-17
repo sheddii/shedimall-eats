@@ -18,6 +18,7 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MenuIndexRouteImport } from './routes/menu.index'
 import { Route as MenuCategoryRouteImport } from './routes/menu.$category'
 
 const SignupRoute = SignupRouteImport.update({
@@ -65,6 +66,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MenuIndexRoute = MenuIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => MenuRoute,
+} as any)
 const MenuCategoryRoute = MenuCategoryRouteImport.update({
   id: '/$category',
   path: '/$category',
@@ -82,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/menu/$category': typeof MenuCategoryRoute
+  '/menu/': typeof MenuIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -89,11 +96,11 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRoute
-  '/menu': typeof MenuRouteWithChildren
   '/settings': typeof SettingsRoute
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/menu/$category': typeof MenuCategoryRoute
+  '/menu': typeof MenuIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,6 +114,7 @@ export interface FileRoutesById {
   '/signin': typeof SigninRoute
   '/signup': typeof SignupRoute
   '/menu/$category': typeof MenuCategoryRoute
+  '/menu/': typeof MenuIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +129,7 @@ export interface FileRouteTypes {
     | '/signin'
     | '/signup'
     | '/menu/$category'
+    | '/menu/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,11 +137,11 @@ export interface FileRouteTypes {
     | '/cart'
     | '/contact'
     | '/dashboard'
-    | '/menu'
     | '/settings'
     | '/signin'
     | '/signup'
     | '/menu/$category'
+    | '/menu'
   id:
     | '__root__'
     | '/'
@@ -145,6 +154,7 @@ export interface FileRouteTypes {
     | '/signin'
     | '/signup'
     | '/menu/$category'
+    | '/menu/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -224,6 +234,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/menu/': {
+      id: '/menu/'
+      path: '/'
+      fullPath: '/menu/'
+      preLoaderRoute: typeof MenuIndexRouteImport
+      parentRoute: typeof MenuRoute
+    }
     '/menu/$category': {
       id: '/menu/$category'
       path: '/$category'
@@ -236,10 +253,12 @@ declare module '@tanstack/react-router' {
 
 interface MenuRouteChildren {
   MenuCategoryRoute: typeof MenuCategoryRoute
+  MenuIndexRoute: typeof MenuIndexRoute
 }
 
 const MenuRouteChildren: MenuRouteChildren = {
   MenuCategoryRoute: MenuCategoryRoute,
+  MenuIndexRoute: MenuIndexRoute,
 }
 
 const MenuRouteWithChildren = MenuRoute._addFileChildren(MenuRouteChildren)
@@ -258,3 +277,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
