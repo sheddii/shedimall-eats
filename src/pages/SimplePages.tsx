@@ -54,7 +54,7 @@ export function SignInPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) navigate({ href: target });
+    if (isAuthenticated) navigate({ to: target });
   }, [isAuthenticated, navigate, target]);
 
   const onSubmit = async (e: FormEvent) => {
@@ -63,7 +63,7 @@ export function SignInPage() {
     setBusy(true);
     try {
       await signIn(email, password);
-      navigate({ href: target });
+      navigate({ to: target });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed");
     } finally {
@@ -103,7 +103,7 @@ export function SignUpPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) navigate({ href: target });
+    if (isAuthenticated) navigate({ to: target });
   }, [isAuthenticated, navigate, target]);
 
   const onSubmit = async (e: FormEvent) => {
@@ -112,7 +112,7 @@ export function SignUpPage() {
     setBusy(true);
     try {
       await signUp(name, email, password);
-      navigate({ href: target });
+      navigate({ to: target });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed");
     } finally {
