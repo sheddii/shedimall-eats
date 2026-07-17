@@ -1,36 +1,30 @@
 ## Goal
-Add mock frontend auth, gate `/menu` and `/menu/$category` behind sign-in, expand each category to 6+ items, and add a `/dashboard` page users land on after auth.
+Each menu category (Dishes, Fries, Drinks) already has 6 items — keep that. When a user opens a category, show the 6 items in a **3-per-row grid on tablet and desktop**, and fix the click that currently doesn't open the category page.
 
 ## Changes
 
-**1. Mock auth context** — `src/contexts/AuthContext.tsx` (new)
-- `AuthProvider` with `user`, `signIn(email, password)`, `signUp(name, email, password)`, `signOut()`.
-- Persist a fake session in `localStorage` (`shedimall.auth`). Any non-empty email+password succeeds.
-- Wrap app in `__root.tsx` inside `CartProvider`.
+**1. `/menu/$category` grid — 3 per row on tablet+**
+File: `src/pages/MenuCategoryPage.tsx`
+- Replace the current grid classes with `grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6`.
+  - Mobile (<768px): 2 per row so cards stay tap-friendly on a 649px phone.
+  - Tablet + desktop (≥768px): exactly 3 per row.
+- If the user prefers strictly 3 across every breakpoint (including narrow phones), swap to `grid-cols-3` — noted below as an alternative.
 
-**2. Sign-in / Sign-up wiring** — `src/pages/SimplePages.tsx`
-- Convert forms to controlled inputs, call `signIn`/`signUp`, then `navigate({ to: "/dashboard" })`.
-- If already authed, redirect to `/dashboard` on mount.
-- Cross-links preserved.
+**2. Fix "clicking a category doesn't open it"**
+Root cause: `src/routes/menu.$category.tsx` runs a `beforeLoad` that, during SSR (`typeof window === "undefined"`), does nothing but on the first client render sees no `localStorage` session and redirects to `/signin`. For an unauthenticated visitor clicking a category on the Home page, this looks like "nothing happened" — the URL flips to `/signin?redirect=…`. Fixes:
+- Home page category cards already link to `/menu/$category`. Keep the guard, but make the redirect visible and returnable:
+  - Confirm `SimplePages.tsx` `useRedirectTarget()` returns to the originally-requested `/menu/$category` after sign-in (already implemented; verify `search.redirect` round-trips correctly and that `navigate({ to: target })` uses `to` typed against the router — switch to `navigate({ href: target })` if the string isn't a known route literal to avoid a silent no-op).
+- For authenticated users, verify the `<Link to="/menu/$category" params={{ category }}>` in `CategoryCard` actually triggers navigation. If clicking still no-ops after sign-in, replace the `<Link>` in `CategoryCard.tsx` with a typed `useNavigate()` `onClick` fallback wrapped around the same anchor to rule out event bubbling from the gradient overlay swallowing the click on touch devices (`pointer-events-none` on the overlay div).
 
-**3. Route guard** — `src/routes/menu.tsx` and `src/routes/menu.$category.tsx`
-- Add `beforeLoad` reading `localStorage` session; if missing, `throw redirect({ to: "/signin", search: { redirect: location.href } })`.
-- Sign-in page reads `redirect` search param and returns there (fallback `/dashboard`).
-
-**4. Dashboard route** — `src/routes/dashboard.tsx` + `src/pages/DashboardPage.tsx` (new)
-- Also gated. Shows welcome (user name/email) and the three categories in a responsive **grid** (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) using existing `CategoryCard`.
-- Sign-out button.
-
-**5. Expanded menu data** — `src/data/menu.ts`
-- Grow each category to 6 items (dishes, fries, drinks = 18 total). Reuse existing images where sensible; add 6 new image assets for the extra items via the image generator (one per new dish/fries/drink).
-
-**6. Navbar** — `src/components/Navbar.tsx`
-- When authenticated: show user avatar/initial menu with "Dashboard" and "Sign out"; when not: keep current Sign in link.
+**3. Verify data**
+File: `src/data/menu.ts` already has 6 items per category (18 total). No change needed.
 
 ## Non-goals
-- No real backend, no password hashing, no email verification.
-- Home / About / Contact / Cart remain public.
+- No backend/auth changes.
+- No new images.
+- Home page category row layout stays as-is.
 
 ## Technical notes
-- Guard runs client-side only (`typeof window` check inside `beforeLoad`) — mock session lives in localStorage, so SSR treats users as signed-out and the client re-checks on hydration. Acceptable for a mock.
-- `useNavigate` from `@tanstack/react-router`; keep type-safe `<Link>` params.
+- Tailwind v4 tokens only; no hardcoded colors.
+- Keep the existing `beforeLoad` auth guard — after signing in the user lands on the originally-clicked category via the `redirect` search param.
+- Alternative if you want literal 3-across on phones too: `grid grid-cols-3 gap-3 sm:gap-6` on `MenuCategoryPage`.
