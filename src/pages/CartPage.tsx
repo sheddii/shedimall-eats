@@ -38,6 +38,10 @@ export function CartPage() {
           <aside className="rounded-xl border border-border bg-card p-6 h-fit">
             <h2 className="font-display text-xl font-semibold mb-4">Summary</h2>
             <div className="flex justify-between text-sm mb-2">
+              <span className="text-muted-foreground">Items</span>
+              <span className="font-medium">{lines.reduce((s, l) => s + l.qty, 0)}</span>
+            </div>
+            <div className="flex justify-between text-sm mb-2">
               <span className="text-muted-foreground">Subtotal</span>
               <span className="font-medium">{formatPrice(subtotal)}</span>
             </div>
@@ -45,9 +49,12 @@ export function CartPage() {
               <span className="text-muted-foreground">Delivery</span>
               <span className="font-medium">Calculated at checkout</span>
             </div>
-            <button className="w-full rounded-md bg-brand px-4 py-2.5 text-sm font-medium text-brand-foreground hover:opacity-90">
-              Checkout
-            </button>
+            <Link
+              to="/checkout"
+              className="block w-full text-center rounded-md bg-brand px-4 py-2.5 text-sm font-medium text-brand-foreground hover:opacity-90"
+            >
+              Proceed to checkout
+            </Link>
             <button onClick={clear} className="mt-2 w-full rounded-md border border-input px-4 py-2 text-sm hover:bg-accent">
               Clear cart
             </button>
