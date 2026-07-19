@@ -117,6 +117,7 @@ function RootComponent() {
             </main>
             <Footer />
           </div>
+          <Toaster />
         </CartProvider>
       </AuthProvider>
     </QueryClientProvider>
