@@ -26,7 +26,7 @@ export function MealCard({ item }: { item: MenuItem }) {
           <p className="mt-1 text-sm font-medium">{formatPrice(item.price)}</p>
         </div>
         <button
-          onClick={() => add(item)}
+          onClick={handleAdd}
           aria-label={`Add ${item.name} to cart`}
           className="absolute top-3 right-3 h-10 w-10 grid place-items-center rounded-full bg-brand text-brand-foreground shadow-md hover:scale-110 transition-transform"
         >
