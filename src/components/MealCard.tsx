@@ -1,9 +1,16 @@
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 import { formatPrice, type MenuItem } from "@/data/menu";
 import { useCart } from "@/contexts/CartContext";
 
 export function MealCard({ item }: { item: MenuItem }) {
   const { add } = useCart();
+  const handleAdd = () => {
+    add(item);
+    toast.success(`${item.name} added to cart`, {
+      description: formatPrice(item.price),
+    });
+  };
   return (
     <article className="group relative overflow-hidden rounded-2xl bg-card border border-border shadow-sm hover:shadow-lg transition-shadow">
       <div className="relative aspect-square overflow-hidden">
