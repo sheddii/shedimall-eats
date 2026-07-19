@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Copy, Check, Pencil, ClipboardCheck } from "lucide-react";
+import { Copy, Check, Pencil, ClipboardCheck, MessageCircle } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatPrice } from "@/data/menu";
 import {
-  // buildWhatsAppOrderUrl, // WhatsApp confirmation temporarily disabled
+  buildWhatsAppOrderUrl,
   PAYMENT_ACCOUNT,
   PAYMENT_NAME,
   PAYMENT_METHOD,
@@ -48,16 +48,15 @@ export function CheckoutPage() {
     } catch {}
   };
 
-  // WhatsApp confirmation flow — kept for future re-enable.
-  // const sendOrder = () => {
-  //   const url = buildWhatsAppOrderUrl(lines, subtotal, {
-  //     name: name.trim(),
-  //     phone: phone.trim(),
-  //     address: address.trim(),
-  //     notes: notes.trim(),
-  //   });
-  //   window.open(url, "_blank", "noopener,noreferrer");
-  // };
+  const sendOrder = () => {
+    const url = buildWhatsAppOrderUrl(lines, subtotal, {
+      name: name.trim(),
+      phone: phone.trim(),
+      address: address.trim(),
+      notes: notes.trim(),
+    });
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   const markPaid = () => {
     setStep("paid");
@@ -301,13 +300,22 @@ export function CheckoutPage() {
           </div>
 
           {step === "review" ? (
-            <button
-              onClick={markPaid}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground hover:opacity-90"
-            >
-              <Check size={16} />
-              I have paid — submit order
-            </button>
+            <>
+              <button
+                onClick={sendOrder}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground hover:opacity-90"
+              >
+                <MessageCircle size={16} />
+                Confirm order via WhatsApp
+              </button>
+              <button
+                onClick={markPaid}
+                className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-md border border-input px-4 py-2.5 text-sm font-semibold hover:bg-accent"
+              >
+                <Check size={16} />
+                I have paid — submit order
+              </button>
+            </>
           ) : (
             <button
               onClick={() => setStep("review")}
@@ -318,17 +326,6 @@ export function CheckoutPage() {
               Review order
             </button>
           )}
-
-          {/*
-            WhatsApp confirmation button — temporarily disabled.
-            <button
-              onClick={sendOrder}
-              className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-md border border-input px-4 py-2.5 text-sm font-semibold hover:bg-accent"
-            >
-              <MessageCircle size={16} />
-              Confirm order via WhatsApp
-            </button>
-          */}
 
           <Link
             to="/cart"
