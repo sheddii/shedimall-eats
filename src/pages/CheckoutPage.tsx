@@ -300,13 +300,22 @@ export function CheckoutPage() {
           </div>
 
           {step === "review" ? (
-            <button
-              onClick={markPaid}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground hover:opacity-90"
-            >
-              <Check size={16} />
-              I have paid — submit order
-            </button>
+            <>
+              <button
+                onClick={sendOrder}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground hover:opacity-90"
+              >
+                <MessageCircle size={16} />
+                Confirm order via WhatsApp
+              </button>
+              <button
+                onClick={markPaid}
+                className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-md border border-input px-4 py-2.5 text-sm font-semibold hover:bg-accent"
+              >
+                <Check size={16} />
+                I have paid — submit order
+              </button>
+            </>
           ) : (
             <button
               onClick={() => setStep("review")}
@@ -317,17 +326,6 @@ export function CheckoutPage() {
               Review order
             </button>
           )}
-
-          {/*
-            WhatsApp confirmation button — temporarily disabled.
-            <button
-              onClick={sendOrder}
-              className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-md border border-input px-4 py-2.5 text-sm font-semibold hover:bg-accent"
-            >
-              <MessageCircle size={16} />
-              Confirm order via WhatsApp
-            </button>
-          */}
 
           <Link
             to="/cart"
