@@ -1,9 +1,16 @@
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 import { formatPrice, type MenuItem } from "@/data/menu";
 import { useCart } from "@/contexts/CartContext";
 
 export function MealCard({ item }: { item: MenuItem }) {
   const { add } = useCart();
+  const handleAdd = () => {
+    add(item);
+    toast.success(`${item.name} added to cart`, {
+      description: formatPrice(item.price),
+    });
+  };
   return (
     <article className="group relative overflow-hidden rounded-2xl bg-card border border-border shadow-sm hover:shadow-lg transition-shadow">
       <div className="relative aspect-square overflow-hidden">
@@ -19,7 +26,7 @@ export function MealCard({ item }: { item: MenuItem }) {
           <p className="mt-1 text-sm font-medium">{formatPrice(item.price)}</p>
         </div>
         <button
-          onClick={() => add(item)}
+          onClick={handleAdd}
           aria-label={`Add ${item.name} to cart`}
           className="absolute top-3 right-3 h-10 w-10 grid place-items-center rounded-full bg-brand text-brand-foreground shadow-md hover:scale-110 transition-transform"
         >

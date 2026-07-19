@@ -306,7 +306,7 @@ export function CheckoutPage() {
                 className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-brand-foreground hover:opacity-90"
               >
                 <MessageCircle size={16} />
-                Confirm order via WhatsApp
+                Confirm payment via WhatsApp
               </button>
               <button
                 onClick={markPaid}
