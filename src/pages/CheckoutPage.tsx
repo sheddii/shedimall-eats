@@ -48,16 +48,15 @@ export function CheckoutPage() {
     } catch {}
   };
 
-  // WhatsApp confirmation flow — kept for future re-enable.
-  // const sendOrder = () => {
-  //   const url = buildWhatsAppOrderUrl(lines, subtotal, {
-  //     name: name.trim(),
-  //     phone: phone.trim(),
-  //     address: address.trim(),
-  //     notes: notes.trim(),
-  //   });
-  //   window.open(url, "_blank", "noopener,noreferrer");
-  // };
+  const sendOrder = () => {
+    const url = buildWhatsAppOrderUrl(lines, subtotal, {
+      name: name.trim(),
+      phone: phone.trim(),
+      address: address.trim(),
+      notes: notes.trim(),
+    });
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   const markPaid = () => {
     setStep("paid");
