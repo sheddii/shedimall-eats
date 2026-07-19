@@ -1,11 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Copy, Check, Pencil, ClipboardCheck } from "lucide-react";
+import { Copy, Check, Pencil, ClipboardCheck, MessageCircle } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatPrice } from "@/data/menu";
 import {
-  // buildWhatsAppOrderUrl, // WhatsApp confirmation temporarily disabled
+  buildWhatsAppOrderUrl,
   PAYMENT_ACCOUNT,
   PAYMENT_NAME,
   PAYMENT_METHOD,
