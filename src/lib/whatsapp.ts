@@ -18,18 +18,22 @@ export function buildOrderMessage(lines: CartLine[], subtotal: number, d: OrderD
     .map((l) => `- ${l.item.name} × ${l.qty} — ${formatPrice(l.item.price * l.qty)}`)
     .join("\n");
   return [
-    "New Shedi-Mall order",
+    "Shedi-Mall payment confirmation",
+    "",
+    `Hi, I've just made payment for my order. Here are the details:`,
     "",
     `Customer: ${d.name}`,
     `Phone: ${d.phone}`,
     `Address: ${d.address}`,
     `Notes: ${d.notes?.trim() ? d.notes.trim() : "—"}`,
     "",
-    "Items:",
+    "Items ordered:",
     items,
     "",
-    `Total: ${formatPrice(subtotal)}`,
-    `Payment: ${PAYMENT_METHOD} transfer to ${PAYMENT_ACCOUNT} (${PAYMENT_NAME})`,
+    `Total paid: ${formatPrice(subtotal)}`,
+    `Payment method: ${PAYMENT_METHOD} transfer to ${PAYMENT_ACCOUNT} (${PAYMENT_NAME})`,
+    "",
+    "Please confirm receipt and arrange delivery. Thank you!",
   ].join("\n");
 }
 
