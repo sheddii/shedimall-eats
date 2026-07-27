@@ -30,3 +30,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Technical Report files
+TECHNICAL_REPORT.*
+TECHNICAL_REPORT*
+technical_report.*
+technical_report*
+
