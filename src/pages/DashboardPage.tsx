@@ -217,12 +217,14 @@ export function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setShowAddMenuModal(true)}
-            className="rounded-lg bg-brand text-brand-foreground px-4 py-2 text-sm font-semibold hover:opacity-90 transition-all shadow-sm flex items-center gap-2"
-          >
-            <span>+</span> Add Menu Item
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setShowAddMenuModal(true)}
+              className="rounded-lg bg-brand text-brand-foreground px-4 py-2 text-sm font-semibold hover:opacity-90 transition-all shadow-sm flex items-center gap-2"
+            >
+              <span>+</span> Add Menu Item
+            </button>
+          )}
           <button
             onClick={loadDashboardData}
             className="rounded-lg border border-input px-3.5 py-2 text-sm font-medium hover:bg-accent transition-all"
@@ -481,12 +483,14 @@ export function DashboardPage() {
               <h2 className="font-display text-xl font-semibold">Menu Items Catalog</h2>
               <p className="text-xs text-muted-foreground">Manage active menu items stored in the MongoDB database</p>
             </div>
-            <button
-              onClick={() => setShowAddMenuModal(true)}
-              className="rounded-lg bg-brand text-brand-foreground px-4 py-2 text-sm font-semibold hover:opacity-90 transition-all shadow-sm"
-            >
-              + Create New Item
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setShowAddMenuModal(true)}
+                className="rounded-lg bg-brand text-brand-foreground px-4 py-2 text-sm font-semibold hover:opacity-90 transition-all shadow-sm"
+              >
+                + Create New Item
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -511,20 +515,22 @@ export function DashboardPage() {
                     <h3 className="font-display text-base font-semibold mt-1">{item.name}</h3>
                     <p className="text-base font-bold text-brand mt-2">{formatPrice(item.price)}</p>
                   </div>
-                  <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-                    <button
-                      onClick={() => openEditModal(item)}
-                      className="text-xs font-semibold text-brand hover:opacity-75 transition-all"
-                    >
-                      ✏️ Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteMenuItem(item.id, item.name)}
-                      className="text-xs font-semibold text-rose-600 hover:text-rose-800 transition-all"
-                    >
-                      🗑️ Delete
-                    </button>
-                  </div>
+                  {isAdmin && (
+                    <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
+                      <button
+                        onClick={() => openEditModal(item)}
+                        className="text-xs font-semibold text-brand hover:opacity-75 transition-all"
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMenuItem(item.id, item.name)}
+                        className="text-xs font-semibold text-rose-600 hover:text-rose-800 transition-all"
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -637,8 +643,8 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* EDIT MENU ITEM MODAL */}
-      {editingItem && (
+      {/* EDIT MENU ITEM MODAL — admin only */}
+      {isAdmin && editingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg rounded-2xl bg-card border border-border p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
