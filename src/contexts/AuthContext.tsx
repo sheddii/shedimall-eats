@@ -36,7 +36,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
-    setUser(readStoredUser());
+    const storedUser = readStoredUser();
+    if (storedUser?.token) {
+      fetch(`${API_BASE}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${storedUser.token}` },
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error("Session expired");
+          return res.json();
+        })
+        .then((data) => {
+          // /api/auth/me returns { user: { id, name, email, role, ... } }
+          const u = data.user ?? data;
+          persist({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            role: u.role,
+            token: storedUser.token,
+          });
+        })
+        .catch(() => {
+          // Token is invalid/expired — clear the stale session
+          persist(null);
+        });
+    }
   }, []);
 
   const persist = (u: AuthUser | null) => {
@@ -50,78 +74,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn: AuthCtx["signIn"] = async (email, password) => {
     if (!email.trim() || !password.trim()) throw new Error("Email and password are required");
 
-    try {
-      const res = await fetch(`${API_BASE}/api/auth/signin`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+    const res = await fetch(`${API_BASE}/api/auth/signin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || errData.error || "Authentication failed");
-      }
-
-      const data = await res.json();
-      persist({
-        id: data.user.id,
-        name: data.user.name,
-        email: data.user.email,
-        role: data.user.role || (email.toLowerCase().includes("admin") ? "admin" : "user"),
-        token: data.token,
-      });
-    } catch (err: any) {
-      // Fallback for offline or local dev without backend running
-      console.warn("Backend auth failed or unreachable, using local session fallback:", err.message);
-      const isDevAdmin = email.toLowerCase().includes("admin");
-      persist({
-        name: email.split("@")[0] || "User",
-        email,
-        role: isDevAdmin ? "admin" : "user",
-        token: "demo-jwt-token",
-      });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.message || errData.error || "Authentication failed");
     }
+
+    const data = await res.json();
+    persist({
+      id: data.user.id,
+      name: data.user.name,
+      email: data.user.email,
+      role: data.user.role,
+      token: data.token,
+    });
   };
 
   const signUp: AuthCtx["signUp"] = async (name, email, password) => {
     if (!name.trim() || !email.trim() || !password.trim()) throw new Error("All fields are required");
 
-    try {
-      const isDevAdmin = email.toLowerCase().includes("admin");
-      const res = await fetch(`${API_BASE}/api/auth/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role: isDevAdmin ? "admin" : "user" }),
-      });
+    const res = await fetch(`${API_BASE}/api/auth/signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
+    });
 
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.message || errData.error || "Registration failed");
-      }
-
-      const data = await res.json();
-      persist({
-        id: data.user.id,
-        name: data.user.name,
-        email: data.user.email,
-        role: data.user.role || (isDevAdmin ? "admin" : "user"),
-        token: data.token,
-      });
-    } catch (err: any) {
-      console.warn("Backend signup failed, using local session fallback:", err.message);
-      const isDevAdmin = email.toLowerCase().includes("admin");
-      persist({
-        name,
-        email,
-        role: isDevAdmin ? "admin" : "user",
-        token: "demo-jwt-token",
-      });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.message || errData.error || "Registration failed");
     }
+
+    const data = await res.json();
+    persist({
+      id: data.user.id,
+      name: data.user.name,
+      email: data.user.email,
+      role: data.user.role,
+      token: data.token,
+    });
   };
 
   const signOut = () => persist(null);
 
-  const isAdmin = !!(user && (user.role === "admin" || user.email.toLowerCase().includes("admin")));
+  const isAdmin = user?.role === "admin";
 
   return (
     <Ctx.Provider value={{ user, isAuthenticated: !!user, isAdmin, signIn, signUp, signOut }}>
