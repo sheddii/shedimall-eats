@@ -1,34 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import hero from "@/assets/hero-menu.jpg";
 import { Hero } from "@/components/Hero";
 import { CategoryCard } from "@/components/CategoryCard";
 import { MealCard } from "@/components/MealCard";
-import { CATEGORIES, type Category, type MenuItem } from "@/data/menu";
-import { getMenuItems } from "@/lib/api";
+import { CATEGORIES, type Category } from "@/data/menu";
+import { useMenuItems } from "@/hooks/useMenuItems";
 
 export function MenuPage() {
-  const [items, setItems] = useState<MenuItem[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<Category | "all">("all");
-  const [loading, setLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    let isMounted = true;
-    setLoading(true);
-    getMenuItems(selectedCategory === "all" ? undefined : selectedCategory)
-      .then((data) => {
-        if (isMounted) {
-          setItems(data);
-          setLoading(false);
-        }
-      })
-      .catch(() => {
-        if (isMounted) setLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [selectedCategory]);
+  const { data: items = [], isLoading, isFetching } = useMenuItems(
+    selectedCategory === "all" ? undefined : selectedCategory
+  );
 
   return (
     <>
@@ -45,7 +28,9 @@ export function MenuPage() {
         <div className="flex items-center justify-between border-b border-border pb-4 mb-8 flex-wrap gap-4">
           <div>
             <h2 className="font-display text-2xl font-semibold">Live Menu Catalog</h2>
-            <p className="text-sm text-muted-foreground">Updated in real-time from our kitchen inventory</p>
+            <p className="text-sm text-muted-foreground">
+              {isFetching && !isLoading ? "⟳ Refreshing..." : "Updated in real-time from our kitchen inventory"}
+            </p>
           </div>
           <div className="flex gap-2 overflow-x-auto">
             <button
@@ -74,7 +59,7 @@ export function MenuPage() {
           </div>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="flex items-center justify-center py-16">
             <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand border-t-transparent" />
             <span className="ml-3 text-sm font-medium text-muted-foreground">Syncing live menu items...</span>

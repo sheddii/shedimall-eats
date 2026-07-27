@@ -1,14 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatPrice, type Category, type MenuItem } from "@/data/menu";
 import {
-  getMenuItems,
   createMenuItem,
   deleteMenuItem,
+  updateMenuItem,
   getAdminStats,
   getAllOrders,
   updateOrderStatus,
 } from "@/lib/api";
+import { useMenuItems, menuKeys } from "@/hooks/useMenuItems";
+import { useQuery } from "@tanstack/react-query";
 
 type OrderItem = {
   id: string;
@@ -25,21 +28,37 @@ type OrderItem = {
 
 export function DashboardPage() {
   const { user, isAdmin, signOut } = useAuth();
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<"overview" | "orders" | "menu">("overview");
 
-  // Data states
-  const [stats, setStats] = useState<{ totalOrders: number; totalSpend: number; recentOrders: OrderItem[] }>({
-    totalOrders: 0,
-    totalSpend: 0,
-    recentOrders: [],
+  // ── Fetch admin stats + orders via useQuery ──────────────────────────────
+  const { data: statsData, isLoading: statsLoading } = useQuery({
+    queryKey: ["admin-stats"],
+    queryFn: () => getAdminStats(user?.token),
+    enabled: !!user?.token,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   });
-  const [orders, setOrders] = useState<OrderItem[]>([]);
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+
+  const { data: ordersData, isLoading: ordersLoading } = useQuery({
+    queryKey: ["admin-orders"],
+    queryFn: () => getAllOrders(user?.token),
+    enabled: !!user?.token,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+  });
+
+  // ── Fetch menu items via shared cache key so public menu reacts instantly ─
+  const { data: menuItems = [], isLoading: menuLoading } = useMenuItems();
+
+  const stats = statsData ?? { totalOrders: 0, totalSpend: 0, recentOrders: [] };
+  const orders: OrderItem[] = (ordersData?.orders ?? []);
+  const loading = statsLoading || ordersLoading || menuLoading;
+
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  // Form states for creating a new menu item
+  // ── Create menu item form state ──────────────────────────────────────────
   const [showAddMenuModal, setShowAddMenuModal] = useState<boolean>(false);
   const [newMenu, setNewMenu] = useState({
     id: "",
@@ -51,52 +70,37 @@ export function DashboardPage() {
   const [submittingMenu, setSubmittingMenu] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  // Load backend data
-  const loadDashboardData = async () => {
-    setLoading(true);
-    try {
-      const [itemsData, statsData, ordersData] = await Promise.allSettled([
-        getMenuItems(),
-        getAdminStats(user?.token),
-        getAllOrders(user?.token),
-      ]);
+  // ── Edit menu item form state ────────────────────────────────────────────
+  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", price: "", category: "dishes" as Category, image: "" });
+  const [submittingEdit, setSubmittingEdit] = useState<boolean>(false);
 
-      if (itemsData.status === "fulfilled") setMenuItems(itemsData.value);
-      if (statsData.status === "fulfilled") setStats(statsData.value);
-      if (ordersData.status === "fulfilled" && Array.isArray(ordersData.value.orders)) {
-        setOrders(ordersData.value.orders);
-      }
-    } catch (err) {
-      console.error("Dashboard data load error:", err);
-    } finally {
-      setLoading(false);
-    }
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  /** Invalidates all menu caches so MenuPage/MenuCategoryPage refetch immediately */
+  const bustMenuCache = () => queryClient.invalidateQueries({ queryKey: menuKeys.all });
+  const bustOrdersCache = () => queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
+
+  /** Reload all data manually */
+  const loadDashboardData = () => {
+    queryClient.invalidateQueries({ queryKey: ["admin-stats"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-orders"] });
+    bustMenuCache();
   };
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [user]);
-
-  // Handle order status update
+  /** Update order status */
   const handleStatusChange = async (orderId: string, newStatus: "pending" | "paid" | "delivered") => {
     try {
       await updateOrderStatus(orderId, newStatus, user?.token);
       setFeedback({ type: "success", message: `Order #${orderId.slice(-6)} updated to '${newStatus}'` });
-      
-      // Update state locally
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
-      );
-      setStats((prev) => ({
-        ...prev,
-        recentOrders: prev.recentOrders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)),
-      }));
+      bustOrdersCache();
     } catch (err: any) {
       setFeedback({ type: "error", message: err.message || "Failed to update order status" });
     }
   };
 
-  // Handle adding new menu item
+  /** Add new menu item */
   const handleAddMenuItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMenu.name.trim() || !newMenu.price.trim()) {
@@ -120,10 +124,9 @@ export function DashboardPage() {
       setFeedback({ type: "success", message: `Menu item '${created.name}' added successfully!` });
       setShowAddMenuModal(false);
       setNewMenu({ id: "", name: "", price: "", category: "dishes", image: "" });
-      
-      // Reload items
-      const updatedList = await getMenuItems();
-      setMenuItems(updatedList);
+
+      // Bust cache → public menu pages refetch immediately
+      await bustMenuCache();
     } catch (err: any) {
       setFeedback({ type: "error", message: err.message || "Failed to add menu item" });
     } finally {
@@ -131,20 +134,68 @@ export function DashboardPage() {
     }
   };
 
-  // Handle deleting menu item
+  /** Delete menu item */
   const handleDeleteMenuItem = async (id: string, name: string) => {
     if (!window.confirm(`Are you sure you want to delete '${name}'?`)) return;
     try {
       await deleteMenuItem(id, user?.token);
       setFeedback({ type: "success", message: `Deleted menu item '${name}'` });
-      setMenuItems((prev) => prev.filter((it) => it.id !== id));
+
+      // Bust cache → public menu pages refetch immediately
+      await bustMenuCache();
     } catch (err: any) {
       setFeedback({ type: "error", message: err.message || "Failed to delete item" });
     }
   };
 
+  /** Open edit modal with item prefilled */
+  const openEditModal = (item: MenuItem) => {
+    setEditingItem(item);
+    setEditForm({
+      name: item.name,
+      price: String(item.price),
+      category: item.category as Category,
+      image: item.image || "",
+    });
+  };
+
+  /** Submit edit form */
+  const handleEditMenuItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+    if (!editForm.name.trim() || !editForm.price.trim()) {
+      setFeedback({ type: "error", message: "Name and Price are required" });
+      return;
+    }
+
+    setSubmittingEdit(true);
+    try {
+      const updated = await updateMenuItem(
+        editingItem.id,
+        {
+          name: editForm.name.trim(),
+          price: parseFloat(editForm.price),
+          category: editForm.category,
+          image: editForm.image.trim() || undefined,
+        },
+        user?.token
+      );
+
+      setFeedback({ type: "success", message: `Updated '${updated.name}' successfully!` });
+      setEditingItem(null);
+
+      // Bust cache → public menu pages refetch immediately
+      await bustMenuCache();
+    } catch (err: any) {
+      setFeedback({ type: "error", message: err.message || "Failed to update item" });
+    } finally {
+      setSubmittingEdit(false);
+    }
+  };
+
   // Filtered orders list
   const filteredOrders = orders.filter((o) => (statusFilter === "all" ? true : o.status === statusFilter));
+
 
   return (
     <section className="mx-auto max-w-7xl px-4 sm:px-6 py-10">
@@ -462,10 +513,16 @@ export function DashboardPage() {
                   </div>
                   <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
                     <button
+                      onClick={() => openEditModal(item)}
+                      className="text-xs font-semibold text-brand hover:opacity-75 transition-all"
+                    >
+                      ✏️ Edit
+                    </button>
+                    <button
                       onClick={() => handleDeleteMenuItem(item.id, item.name)}
                       className="text-xs font-semibold text-rose-600 hover:text-rose-800 transition-all"
                     >
-                      🗑️ Delete Item
+                      🗑️ Delete
                     </button>
                   </div>
                 </div>
@@ -573,6 +630,101 @@ export function DashboardPage() {
                   className="rounded-lg bg-brand text-brand-foreground px-5 py-2 text-sm font-semibold hover:opacity-90 disabled:opacity-50"
                 >
                   {submittingMenu ? "Adding Item..." : "Save Menu Item"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MENU ITEM MODAL */}
+      {editingItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg rounded-2xl bg-card border border-border p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between border-b border-border pb-4 mb-4">
+              <div>
+                <h3 className="font-display text-xl font-bold">Edit Menu Item</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">ID: {editingItem.id}</p>
+              </div>
+              <button onClick={() => setEditingItem(null)} className="text-muted-foreground hover:text-foreground text-lg">
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleEditMenuItem} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                  Item Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Special Peppered Chicken"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full rounded-lg border border-input px-3.5 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-brand"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                    Price (NGN) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="1"
+                    placeholder="e.g. 4500"
+                    value={editForm.price}
+                    onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                    className="w-full rounded-lg border border-input px-3.5 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-brand"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                    Category <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={editForm.category}
+                    onChange={(e) => setEditForm({ ...editForm, category: e.target.value as Category })}
+                    className="w-full rounded-lg border border-input px-3.5 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-brand"
+                  >
+                    <option value="dishes">Dishes</option>
+                    <option value="fries">Fries</option>
+                    <option value="drinks">Drinks</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase text-muted-foreground mb-1">
+                  Image Path / URL (Optional)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. /images/dish-jollof.jpg or https://..."
+                  value={editForm.image}
+                  onChange={(e) => setEditForm({ ...editForm, image: e.target.value })}
+                  className="w-full rounded-lg border border-input px-3.5 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-brand"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-border flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingItem(null)}
+                  className="rounded-lg border border-input px-4 py-2 text-sm font-medium hover:bg-accent"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingEdit}
+                  className="rounded-lg bg-brand text-brand-foreground px-5 py-2 text-sm font-semibold hover:opacity-90 disabled:opacity-50"
+                >
+                  {submittingEdit ? "Saving Changes..." : "Save Changes"}
                 </button>
               </div>
             </form>
